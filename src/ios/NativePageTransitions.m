@@ -39,6 +39,12 @@
 }
 
 - (void) slide:(CDVInvokedUrlCommand*)command {
+  if (self.fallbackTimer != nil && self.fallbackTimer.valid) {
+    [self.fallbackTimer invalidate];
+  }
+  
+  self.fallbackTimer = nil;
+  
   // If slide was previous called but not committed we remove generated views
   if (self.currentTransition != nil) {
     if (self.screenShotImageViewTop != nil) {
@@ -143,11 +149,7 @@
     CGImageRelease(tempImage);
   }
   
-  if ([direction isEqualToString:@"left"] || [direction isEqualToString:@"up"]) {
-    [self.transitionView.superview insertSubview:_screenShotImageView belowSubview:self.transitionView];
-  } else {
     [self.transitionView.superview insertSubview:_screenShotImageView aboveSubview:self.transitionView];
-  }
   
   // Make a cropped version of the screenshot with only the top and/or bottom piece. Only for left/right slides atm.
   if ([direction isEqualToString:@"left"] || [direction isEqualToString:@"right"]) {
@@ -189,13 +191,33 @@
   definition.width = width;
   definition.height = height;
   self.currentTransition = definition;
+  
+  SEL commitSlideSel = @selector(commitSlide:);
+  NSMethodSignature *sig = [self.class instanceMethodSignatureForSelector:commitSlideSel];
+  NSInvocation *inv = [NSInvocation invocationWithMethodSignature:sig];
+  [inv setTarget:self];
+  [inv setSelector:commitSlideSel];
+  
+  self.fallbackTimer = [NSTimer scheduledTimerWithTimeInterval:1.0 invocation:inv repeats:false];
 }
 
 - (void)commitSlide:(CDVInvokedUrlCommand*)command {
+  if (self.fallbackTimer != nil && self.fallbackTimer.valid) {
+    [self.fallbackTimer invalidate];
+  }
+  
+  self.fallbackTimer = nil;
+  
   if (self.currentTransition == nil) {
-    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_INVALID_ACTION];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    if (command != nil) {
+      CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_INVALID_ACTION];
+      [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    }
     return;
+  }
+  
+  if ([self.currentTransition.direction isEqualToString:@"left"] || [self.currentTransition.direction isEqualToString:@"up"]) {
+    [self.transitionView.superview insertSubview:_screenShotImageView belowSubview:self.transitionView];
   }
   
   if ([self loadHrefIfPassed:self.currentTransition.href]) {
@@ -207,8 +229,10 @@
                      }
                      completion:^(BOOL finished) {
                        [_screenShotImageView removeFromSuperview];
-                       CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-                       [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                       if (command != nil) {
+                         CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+                         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+                       }
                      }];
     
     // also, fade out the screenshot a bit to give it some depth

@@ -13,6 +13,7 @@
 @property (strong, nonatomic) IBOutlet WKWebView *wkWebView;
 @property (strong, nonatomic) IBOutlet NativePageTransitionDefinition *currentTransition;
 @property (nonatomic, assign) int nonWebViewHeight;
+@property (strong, nonatomic) NSTimer *fallbackTimer;
 
 - (void) slide:(CDVInvokedUrlCommand*)command;
 - (void) drawer:(CDVInvokedUrlCommand*)command;
