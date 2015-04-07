@@ -36,6 +36,8 @@
 		</config-file>
 		<header-file src="src/ios/NativePageTransitions.h"/>
 		<source-file src="src/ios/NativePageTransitions.m"/>
+    <header-file src="src/ios/NativePageTransitionDefinition.h"/>
+    <source-file src="src/ios/NativePageTransitionDefinition.m"/>
 	</platform>
 
 	<!-- android -->

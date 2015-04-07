@@ -40,6 +40,11 @@ NativePageTransitions.prototype.slide = function (options, onSuccess, onError) {
   cordova.exec(onSuccess, onError, "NativePageTransitions", "slide", [opts]);
 };
 
+NativePageTransitions.prototype.commitSlide = function (options, onSuccess, onError) {
+  var opts = options || {};
+  cordova.exec(onSuccess, onError, "NativePageTransitions", "commitSlide", [opts]);
+};
+
 NativePageTransitions.prototype.drawer = function (options, onSuccess, onError) {
   var opts = options || {};
   if (!this._validateHref(opts.href, onError)) {

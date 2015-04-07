@@ -1,5 +1,6 @@
 #import <WebKit/WebKit.h>
 #import "Cordova/CDV.h"
+#import "NativePageTransitionDefinition.h"
 
 @interface NativePageTransitions : CDVPlugin
 
@@ -10,6 +11,7 @@
 
 @property (strong, nonatomic) IBOutlet UIView *transitionView;
 @property (strong, nonatomic) IBOutlet WKWebView *wkWebView;
+@property (strong, nonatomic) IBOutlet NativePageTransitionDefinition *currentTransition;
 @property (nonatomic, assign) int nonWebViewHeight;
 
 - (void) slide:(CDVInvokedUrlCommand*)command;

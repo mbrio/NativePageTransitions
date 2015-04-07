@@ -39,6 +39,23 @@
 }
 
 - (void) slide:(CDVInvokedUrlCommand*)command {
+  // If slide was previous called but not committed we remove generated views
+  if (self.currentTransition != nil) {
+    if (self.screenShotImageViewTop != nil) {
+      [self.screenShotImageViewTop removeFromSuperview];
+    }
+    
+    if (self.screenShotImageViewBottom != nil) {
+      [self.screenShotImageViewBottom removeFromSuperview];
+    }
+    
+    if (self.screenShotImageView != nil) {
+      [self.screenShotImageView removeFromSuperview];
+    }
+    
+    self.currentTransition = nil;
+  }
+  
   _command = command;
   NSMutableDictionary *args = [command.arguments objectAtIndex:0];
   NSString *direction = [args objectForKey:@"direction"];
@@ -154,12 +171,39 @@
     }
   }
   
-  if ([self loadHrefIfPassed:href]) {
-    [UIView animateWithDuration:duration
-                          delay:delay
+  NativePageTransitionDefinition *definition = [[NativePageTransitionDefinition alloc] init];
+  definition.direction = direction;
+  definition.duration = duration;
+  definition.delay = delay;
+  definition.href = href;
+  definition.slowdownfactor = slowdownfactor;
+  definition.fixedPixelsBottom = fixedPixelsBottom;
+  definition.fixedPixelsTop = fixedPixelsTop;
+  definition.lowerLayerAlpha = lowerLayerAlpha;
+  definition.transitionToX = transitionToX;
+  definition.transitionToY = transitionToY;
+  definition.webviewFromY = webviewFromY;
+  definition.webviewToY = webviewToY;
+  definition.screenshotSlowdownFactor = screenshotSlowdownFactor;
+  definition.webviewSlowdownFactor = webviewSlowdownFactor;
+  definition.width = width;
+  definition.height = height;
+  self.currentTransition = definition;
+}
+
+- (void)commitSlide:(CDVInvokedUrlCommand*)command {
+  if (self.currentTransition == nil) {
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_INVALID_ACTION];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+    return;
+  }
+  
+  if ([self loadHrefIfPassed:self.currentTransition.href]) {
+    [UIView animateWithDuration:self.currentTransition.duration
+                          delay:self.currentTransition.delay
                         options:UIViewAnimationOptionCurveEaseInOut // TODO: allow passing in?
                      animations:^{
-                       [_screenShotImageView setFrame:CGRectMake(transitionToX/screenshotSlowdownFactor, transitionToY, width, height)];
+                       [_screenShotImageView setFrame:CGRectMake(self.currentTransition.transitionToX/self.currentTransition.screenshotSlowdownFactor, self.currentTransition.transitionToY, self.currentTransition.width, self.currentTransition.height)];
                      }
                      completion:^(BOOL finished) {
                        [_screenShotImageView removeFromSuperview];
@@ -168,24 +212,24 @@
                      }];
     
     // also, fade out the screenshot a bit to give it some depth
-    if ([slowdownfactor intValue] != 1 && ([direction isEqualToString:@"left"] || [direction isEqualToString:@"up"])) {
-      [UIView animateWithDuration:duration
-                            delay:delay
+    if ([self.currentTransition.slowdownfactor intValue] != 1 && ([self.currentTransition.direction isEqualToString:@"left"] || [self.currentTransition.direction isEqualToString:@"up"])) {
+      [UIView animateWithDuration:self.currentTransition.duration
+                            delay:self.currentTransition.delay
                           options:UIViewAnimationOptionCurveEaseInOut
                        animations:^{
-                         _screenShotImageView.alpha = lowerLayerAlpha;
+                         _screenShotImageView.alpha = self.currentTransition.lowerLayerAlpha;
                        }
                        completion:^(BOOL finished) {
                        }];
     }
     
-    [self.transitionView setFrame:CGRectMake(-transitionToX/webviewSlowdownFactor, webviewFromY, width, height-_nonWebViewHeight)];
+    [self.transitionView setFrame:CGRectMake(-self.currentTransition.transitionToX/self.currentTransition.webviewSlowdownFactor, self.currentTransition.webviewFromY, self.currentTransition.width, self.currentTransition.height-_nonWebViewHeight)];
     
-    [UIView animateWithDuration:duration
-                          delay:delay
+    [UIView animateWithDuration:self.currentTransition.duration
+                          delay:self.currentTransition.delay
                         options:UIViewAnimationOptionCurveEaseInOut
                      animations:^{
-                       [self.transitionView setFrame:CGRectMake(0, webviewToY, width, height-_nonWebViewHeight)];
+                       [self.transitionView setFrame:CGRectMake(0, self.currentTransition.webviewToY, self.currentTransition.width, self.currentTransition.height-_nonWebViewHeight)];
                      }
                      completion:^(BOOL finished) {
                        // doesn't matter if these weren't added
@@ -193,10 +237,10 @@
                        [_screenShotImageViewBottom removeFromSuperview];
                      }];
     
-    if ([slowdownfactor intValue] != 1 && ([direction isEqualToString:@"right"] || [direction isEqualToString:@"down"])) {
-      self.transitionView.alpha = lowerLayerAlpha;
-      [UIView animateWithDuration:duration
-                            delay:delay
+    if ([self.currentTransition.slowdownfactor intValue] != 1 && ([self.currentTransition.direction isEqualToString:@"right"] || [self.currentTransition.direction isEqualToString:@"down"])) {
+      self.transitionView.alpha = self.currentTransition.lowerLayerAlpha;
+      [UIView animateWithDuration:self.currentTransition.duration
+                            delay:self.currentTransition.delay
                           options:UIViewAnimationOptionCurveEaseInOut
                        animations:^{
                          self.transitionView.alpha = 1.0;
@@ -205,6 +249,8 @@
                        }];
     }
   }
+  
+  self.currentTransition = nil;
 }
 
 - (void) drawer:(CDVInvokedUrlCommand*)command {
