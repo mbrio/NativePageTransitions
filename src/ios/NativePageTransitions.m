@@ -39,6 +39,8 @@
 }
 
 - (void) slide:(CDVInvokedUrlCommand*)command {
+  [[UIApplication sharedApplication] beginIgnoringInteractionEvents];
+    
   if (self.fallbackTimer != nil && self.fallbackTimer.valid) {
     [self.fallbackTimer invalidate];
   }
@@ -229,6 +231,7 @@
                      }
                      completion:^(BOOL finished) {
                        [_screenShotImageView removeFromSuperview];
+                       [[UIApplication sharedApplication] endIgnoringInteractionEvents];
                        if (command != nil) {
                          CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
                          [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
